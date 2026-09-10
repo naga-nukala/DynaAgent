@@ -1,6 +1,7 @@
 import json
 import os
 import re
+from datetime import datetime
 from io import BytesIO
 from pathlib import Path
 
@@ -8,6 +9,7 @@ import streamlit as st
 from crewai import Agent, Task, Crew, Process, LLM
 
 AGENTS_FILE = Path(__file__).with_name("agents.json")
+HISTORY_FILE = Path(__file__).with_name("workflow_history.json")
 DEFAULT_AGENTS = [
     {"role": "Research Analyst", "goal": "Find reliable information and turn it into clear, useful insights", "backstory": "You are a careful researcher who compares sources, spots patterns, and explains complex topics plainly."},
     {"role": "Content Strategist", "goal": "Shape information into focused content for a specific audience", "backstory": "You are an experienced editor who understands audience needs, structure, tone, and persuasive communication."},
@@ -30,6 +32,37 @@ def load_saved_agents():
 def save_agents(agents):
     with AGENTS_FILE.open("w", encoding="utf-8") as file:
         json.dump(agents, file, indent=2)
+
+
+def load_history():
+    if not HISTORY_FILE.exists():
+        return []
+    try:
+        with HISTORY_FILE.open("r", encoding="utf-8") as file:
+            history = json.load(file)
+        return history if isinstance(history, list) else []
+    except (OSError, json.JSONDecodeError):
+        return []
+
+
+def save_history(history):
+    with HISTORY_FILE.open("w", encoding="utf-8") as file:
+        json.dump(history, file, indent=2)
+
+
+def add_history_entry(workflow_brief):
+    clean_text = (workflow_brief or "").strip()
+    if not clean_text:
+        return
+
+    history = list(st.session_state.get("history", []))
+    history = [entry for entry in history if (entry.get("prompt") or "").strip() != clean_text]
+    history.insert(0, {
+        "prompt": clean_text,
+        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    })
+    st.session_state.history = history[:20]
+    save_history(st.session_state.history)
 
 
 def extract_document_text(uploaded_file):
@@ -229,14 +262,34 @@ if "generated_tasks" not in st.session_state:
     st.session_state.generated_tasks = []
 if "workflow_accepted" not in st.session_state:
     st.session_state.workflow_accepted = False
+if "workflow_brief" not in st.session_state:
+    st.session_state.workflow_brief = ""
+if "history" not in st.session_state:
+    st.session_state.history = load_history()
 
 st.divider()
 st.header("1. Describe your workflow")
 workflow_brief = st.text_area(
     "What should this workflow do?",
+    value=st.session_state.workflow_brief,
     height=150,
     placeholder="Example: Build a customer research workflow for a new fintech app. The flow should compare competitors, summarize customer pain points, and recommend feature priorities.",
 )
+st.session_state.workflow_brief = workflow_brief
+
+with st.expander("Workflow history log", expanded=False):
+    if st.session_state.history:
+        for index, item in enumerate(st.session_state.history):
+            prompt_preview = item["prompt"]
+            label = f"{item.get('created_at', 'Unknown')} - {prompt_preview[:80]}"
+            if st.button(label, key=f"history_{index}"):
+                st.session_state.workflow_brief = item["prompt"]
+                st.session_state.generated_agents = []
+                st.session_state.generated_tasks = []
+                st.session_state.workflow_accepted = False
+                st.rerun()
+    else:
+        st.caption("No saved workflow history yet.")
 
 if st.button("Generate workflow", type="primary"):
     if not workflow_brief.strip():
@@ -250,6 +303,7 @@ if st.button("Generate workflow", type="primary"):
                 st.session_state.generated_agents = generated_agents
                 st.session_state.generated_tasks = generated_tasks
                 st.session_state.workflow_accepted = False
+                add_history_entry(workflow_brief)
             st.success("A draft workflow was generated.")
         except Exception as exc:
             st.error(f"Could not generate the workflow: {exc}")
