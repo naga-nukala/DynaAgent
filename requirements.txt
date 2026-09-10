@@ -1,7 +1,10 @@
-streamlit
+streamlit==1.61.1
 python-dotenv
-crewai
-crewai-tools
-pydantic==2.11.10
+crewai==1.15.16
+crewai-tools==1.15.16
+pydantic==2.12.5
+pydantic-core==2.41.5
+chromadb==1.1.1
+tiktoken==0.12.0
 pypdf
 python-docx
