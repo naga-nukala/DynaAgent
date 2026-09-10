@@ -2,5 +2,6 @@ streamlit
 python-dotenv
 crewai
 crewai-tools
+pydantic==2.11.10
 pypdf
 python-docx
