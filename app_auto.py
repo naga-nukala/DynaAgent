@@ -289,6 +289,9 @@ st.set_page_config(page_title="Auto Workflow Builder", layout="wide")
 st.title("Workflow Studio Auto Builder")
 st.subheader("Describe the workflow once; let the system propose the roles and tasks")
 
+if "serper_api_key" not in st.session_state:
+    st.session_state.serper_api_key = ""
+
 with st.sidebar:
     st.header("Model settings")
     provider_name = st.selectbox("LLM provider", options=list(LLM_PROVIDERS))
@@ -305,6 +308,14 @@ with st.sidebar:
     else:
         api_key_input = ""
         st.caption("Requires the Ollama app running locally with the selected model pulled.")
+
+    st.text_input(
+        "Serper API key",
+        key="serper_api_key",
+        type="password",
+        help="Used for workflows that need live web research. Cleared when the session is refreshed.",
+    )
+    st.caption("Optional: required only when the workflow needs website or search access.")
 
     process_type = st.radio(
         "Workflow mode",
@@ -359,21 +370,6 @@ generated_text = " ".join(
     ]
 )
 web_search_required = workflow_requires_web_search(workflow_brief + " " + generated_text)
-
-if "serper_api_key" not in st.session_state:
-    st.session_state.serper_api_key = ""
-
-if web_search_required:
-    with st.sidebar:
-        st.divider()
-        st.subheader("Web research")
-        st.caption("This workflow appears to need live website or search access.")
-        st.session_state.serper_api_key = st.text_input(
-            "Serper API key",
-            value=st.session_state.serper_api_key,
-            type="password",
-            help="Used only during this Streamlit session. It is not saved to a file.",
-        )
 
 with st.expander("Workflow history log", expanded=False):
     if st.session_state.history:

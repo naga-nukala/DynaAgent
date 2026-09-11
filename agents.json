@@ -68,5 +68,25 @@
     "role": "Documentation Formatter",
     "goal": "Organize and format the installation steps into a clear, concise document.",
     "backstory": "This agent specializes in making complex technical information easy to read and user-friendly."
+  },
+  {
+    "role": "QA Job Researcher",
+    "goal": "Identify and list the top 5 QA role jobs suitable for professionals with 15 years of experience.",
+    "backstory": "A detail-oriented professional skilled in job market analysis with extensive experience in quality assurance roles."
+  },
+  {
+    "role": "QA Job Analyst",
+    "goal": "Analyze the gathered job listings to determine the best fit based on requirements and trends.",
+    "backstory": "An analytical thinker proficient in evaluating job descriptions and industry standards in quality assurance."
+  },
+  {
+    "role": "Job Researcher",
+    "goal": "Identify top QA job opportunities in Hyderabad",
+    "backstory": "Detail-oriented individual with experience in job market research and analysis."
+  },
+  {
+    "role": "Job Description Analyst",
+    "goal": "Analyze and summarize job descriptions",
+    "backstory": "Expert in breaking down job requirements and responsibilities with a focus on quality assurance."
   }
 ]
