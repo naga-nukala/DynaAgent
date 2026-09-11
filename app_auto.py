@@ -16,6 +16,70 @@ DEFAULT_AGENTS = [
     {"role": "Data Analyst", "goal": "Interpret data, identify meaningful trends, and communicate practical conclusions", "backstory": "You are a methodical analyst who checks assumptions, looks for outliers, and presents evidence-driven recommendations."},
     {"role": "Quality Reviewer", "goal": "Check work for accuracy, completeness, clarity, and actionable improvements", "backstory": "You are a constructive reviewer who catches gaps and inconsistencies while keeping the final result easy to use."},
 ]
+WEB_SEARCH_TERMS = (
+    "web", "website", "websites", "internet", "online", "browse", "browser",
+    "crawl", "crawling", "scrape", "scraping", "search", "google", "linkedin",
+    "competitor", "competitors", "current", "latest", "recent", "news", "market",
+    "source", "sources", "research", "job listing", "job listings", "live data",
+)
+LLM_PROVIDERS = {
+    "Google Gemini": {
+        "env_key": "GEMINI_API_KEY",
+        "models": ["gemini/gemini-2.5-flash", "gemini/gemini-2.0-flash", "gemini/gemini-2.5-pro"],
+        "requires_key": True,
+    },
+    "OpenAI": {
+        "env_key": "OPENAI_API_KEY",
+        "models": ["gpt-4o-mini", "gpt-4o", "gpt-4.1-mini", "gpt-4.1"],
+        "requires_key": True,
+    },
+    "Anthropic": {
+        "env_key": "ANTHROPIC_API_KEY",
+        "models": ["anthropic/claude-3-5-haiku-latest", "anthropic/claude-3-5-sonnet-latest"],
+        "requires_key": True,
+    },
+    "Groq": {
+        "env_key": "GROQ_API_KEY",
+        "models": ["groq/llama-3.3-70b-versatile", "groq/llama-3.1-8b-instant"],
+        "requires_key": True,
+    },
+    "OpenRouter": {
+        "env_key": "OPENROUTER_API_KEY",
+        "models": ["openrouter/openai/gpt-4o-mini", "openrouter/google/gemini-2.0-flash-001"],
+        "requires_key": True,
+    },
+    "Mistral": {
+        "env_key": "MISTRAL_API_KEY",
+        "models": ["mistral/mistral-small-latest", "mistral/mistral-large-latest"],
+        "requires_key": True,
+    },
+    "Hugging Face": {
+        "env_key": "HF_TOKEN",
+        "models": ["huggingface/meta-llama/Llama-3.1-8B-Instruct", "huggingface/mistralai/Mistral-7B-Instruct-v0.3"],
+        "requires_key": True,
+    },
+    "Ollama (local)": {
+        "env_key": "",
+        "models": ["ollama/llama3.2", "ollama/qwen2.5:7b", "ollama/mistral"],
+        "requires_key": False,
+    },
+}
+
+
+def workflow_requires_web_search(text):
+    normalized_text = (text or "").lower()
+    return any(term in normalized_text for term in WEB_SEARCH_TERMS)
+
+
+def create_selected_llm(provider_name, model_name, api_key):
+    provider = LLM_PROVIDERS[provider_name]
+    if provider["requires_key"] and not api_key.strip():
+        return None
+
+    options = {"model": model_name}
+    if provider["requires_key"]:
+        options["api_key"] = api_key.strip()
+    return LLM(**options)
 
 
 def load_saved_agents():
@@ -154,7 +218,7 @@ def normalize_workflow_payload(payload):
             cleaned_tasks.append({
                 "description": description,
                 "expected_output": expected_output,
-                "agent_role": agent_role or (cleaned_agents[0]["role"] if cleaned_agents else "Research Analyst"),
+                "agent_role": agent_role or (cleaned_agents[0]["role"] if cleaned_agents else "Workflow Specialist"),
             })
 
     if not cleaned_agents and cleaned_tasks:
@@ -166,7 +230,7 @@ def normalize_workflow_payload(payload):
                 unique_roles.append({
                     "role": role,
                     "goal": f"Complete the task: {task['description'][:80]}",
-                    "backstory": "You are a specialist agent created from the workflow description."
+                    "backstory": "You are a specialist agent created specifically for this workflow."
                 })
                 seen.add(role)
         cleaned_agents = unique_roles
@@ -191,31 +255,30 @@ You are a workflow architect. Create a realistic multi-agent work plan from this
 USER BRIEF:
 {workflow_brief}
 
-Important: The workflow must be suitable for a resume and LinkedIn career growth use case.
-Focus on extracting facts from the resume, identifying the current profile, recommending the next role, and producing updated profile/resume language.
+Design the workflow entirely from the user's brief. Do not assume this is a resume,
+career, LinkedIn, research, software, marketing, or any other specific type of task
+unless the brief explicitly says so. The agent roles, goals, tasks, and deliverables
+must be directly relevant to the user's requested outcome.
 
 Return a valid JSON object with exactly these keys:
 {{
   "agents": [
-    {{"role": "Resume Analyst", "goal": "Extract years of experience, current location, and current role from a resume.", "backstory": "You are detail-oriented and careful with factual extraction from career documents."}},
-    {{"role": "Career Strategist", "goal": "Identify the most relevant next job based on present role and location.", "backstory": "You reason about role transitions, market fit, and realistic career progression."}},
-    {{"role": "LinkedIn Profile Writer", "goal": "Draft profile content for the next role and location.", "backstory": "You write concise, professional, high-impact profile language tailored to a target job."}},
-    {{"role": "Resume Writer", "goal": "Draft updated resume content that matches the target role.", "backstory": "You rewrite experience and achievements into recruiter-friendly, evidence-based resume language."}}
+        {{"role": "A role chosen from the user's brief", "goal": "A goal directly related to the requested outcome", "backstory": "A working style appropriate for this role"}}
   ],
   "tasks": [
-    {{"description": "Read the attached resume and identify years of experience, present location, and current role.", "expected_output": "A clear summary of the candidate's current experience, location, and role.", "agent_role": "Resume Analyst"}},
-    {{"description": "Determine the next related job opportunity from LinkedIn based on the current role and current location.", "expected_output": "A realistic target job title and a short explanation of why it matches the candidate profile.", "agent_role": "Career Strategist"}},
-    {{"description": "Write the LinkedIn profile content needed to position the candidate for the target next role.", "expected_output": "Updated headline, summary, and profile positioning content for LinkedIn.", "agent_role": "LinkedIn Profile Writer"}},
-    {{"description": "Write the resume experience and summary content to update the resume for the next role.", "expected_output": "Updated resume summary and achievement-oriented content tailored to the target role.", "agent_role": "Resume Writer"}}
+        {{"description": "A specific task derived from the user's brief", "expected_output": "The concrete deliverable from this task", "agent_role": "One of the generated agent roles"}}
   ]
 }}
 
 Rules:
-- Use 2 to 5 agents.
-- Use 2 to 5 tasks.
+- Create the smallest useful team: usually 2 to 5 agents and 2 to 5 tasks.
+- Choose role names based on the domain, actions, and deliverables in the brief.
+- Break the brief into a logical order of tasks with clear dependencies.
+- Make every task contribute directly to the requested outcome.
+- Use the attached document as source material when one is provided at execution time.
 - Match each task to an existing agent role.
 - Keep the response valid JSON only; no markdown fences, no narration, no comments.
-- Make the workflow realistic and actionable for a resume and career progression scenario.
+- Make the workflow realistic, actionable, and specific to this brief.
 """
     response = llm.call(prompt)
     payload = parse_json_from_text(response)
@@ -228,18 +291,20 @@ st.subheader("Describe the workflow once; let the system propose the roles and t
 
 with st.sidebar:
     st.header("Model settings")
-    api_key_input = st.text_input(
-        "Provider API key",
-        type="password",
-        value=os.getenv("GEMINI_API_KEY", ""),
-        help="Your provider API key is used only when a workflow runs or generates tasks."
-    )
+    provider_name = st.selectbox("LLM provider", options=list(LLM_PROVIDERS))
+    provider_config = LLM_PROVIDERS[provider_name]
+    selected_model = st.selectbox("Select model", options=provider_config["models"])
 
-    gemini_model = st.selectbox(
-        "Select model",
-        options=["gemini/gemini-3.5-flash", "gemini/gemini-3.5-pro", "gemini/gemini-3.5-flash-lite"],
-        index=0,
-    )
+    if provider_config["requires_key"]:
+        api_key_input = st.text_input(
+            f"{provider_name} API key",
+            type="password",
+            value=os.getenv(provider_config["env_key"], ""),
+            help="Used only in this Streamlit session unless supplied by the environment.",
+        )
+    else:
+        api_key_input = ""
+        st.caption("Requires the Ollama app running locally with the selected model pulled.")
 
     process_type = st.radio(
         "Workflow mode",
@@ -248,11 +313,17 @@ with st.sidebar:
         help="Choose whether tasks run in order or are coordinated by a manager."
     )
 
-if api_key_input:
-    gemini_llm = LLM(model=gemini_model, api_key=api_key_input)
-else:
-    gemini_llm = None
-    st.warning("Add a provider API key in the sidebar to generate or run a workflow.")
+try:
+    selected_llm = create_selected_llm(provider_name, selected_model, api_key_input)
+except Exception as exc:
+    selected_llm = None
+    st.error(f"Could not configure {provider_name}: {exc}")
+
+if selected_llm is None:
+    if provider_config["requires_key"]:
+        st.warning(f"Add a {provider_name} API key in the sidebar to generate or run a workflow.")
+    else:
+        st.warning("Start Ollama locally and pull the selected model before generating or running a workflow.")
 
 if "saved_agents" not in st.session_state:
     st.session_state.saved_agents = load_saved_agents()
@@ -277,6 +348,33 @@ workflow_brief = st.text_area(
 )
 st.session_state.workflow_brief = workflow_brief
 
+generated_text = " ".join(
+    [
+        agent.get("goal", "") + " " + agent.get("backstory", "")
+        for agent in st.session_state.generated_agents
+    ]
+    + [
+        task.get("description", "") + " " + task.get("expected_output", "")
+        for task in st.session_state.generated_tasks
+    ]
+)
+web_search_required = workflow_requires_web_search(workflow_brief + " " + generated_text)
+
+if "serper_api_key" not in st.session_state:
+    st.session_state.serper_api_key = ""
+
+if web_search_required:
+    with st.sidebar:
+        st.divider()
+        st.subheader("Web research")
+        st.caption("This workflow appears to need live website or search access.")
+        st.session_state.serper_api_key = st.text_input(
+            "Serper API key",
+            value=st.session_state.serper_api_key,
+            type="password",
+            help="Used only during this Streamlit session. It is not saved to a file.",
+        )
+
 with st.expander("Workflow history log", expanded=False):
     if st.session_state.history:
         for index, item in enumerate(st.session_state.history):
@@ -294,12 +392,12 @@ with st.expander("Workflow history log", expanded=False):
 if st.button("Generate workflow", type="primary"):
     if not workflow_brief.strip():
         st.error("Please describe the workflow you want to build.")
-    elif gemini_llm is None:
-        st.error("Add a provider API key before generating the workflow.")
+    elif selected_llm is None:
+        st.error(f"Configure {provider_name} before generating the workflow.")
     else:
         try:
             with st.spinner("Generating agents and tasks from your brief..."):
-                generated_agents, generated_tasks = generate_workflow_from_brief(workflow_brief, gemini_llm)
+                generated_agents, generated_tasks = generate_workflow_from_brief(workflow_brief, selected_llm)
                 st.session_state.generated_agents = generated_agents
                 st.session_state.generated_tasks = generated_tasks
                 st.session_state.workflow_accepted = False
@@ -359,10 +457,20 @@ if not active_agents or not active_tasks:
     st.info("Generate a workflow first and accept it to start the run.")
 else:
     if st.button("Run workflow", type="primary"):
-        if not gemini_llm:
-            st.error("Add a provider API key before running.")
+        if not selected_llm:
+            st.error(f"Configure {provider_name} before running.")
+        elif web_search_required and not st.session_state.serper_api_key.strip():
+            st.error("This workflow needs web research. Add the Serper API key in the left sidebar before running.")
         else:
+            previous_serper_key = os.environ.get("SERPER_API_KEY")
             try:
+                web_search_tool = None
+                if web_search_required:
+                    from crewai_tools import SerperDevTool
+
+                    os.environ["SERPER_API_KEY"] = st.session_state.serper_api_key.strip()
+                    web_search_tool = SerperDevTool()
+
                 with st.spinner("Running your generated workflow..."):
                     created_agents = {}
                     crewai_agents = []
@@ -371,7 +479,8 @@ else:
                             role=ag["role"],
                             goal=ag["goal"],
                             backstory=ag["backstory"],
-                            llm=gemini_llm,
+                            llm=selected_llm,
+                            tools=[web_search_tool] if web_search_tool else [],
                             verbose=False,
                         )
                         created_agents[ag["role"]] = agent_obj
@@ -403,7 +512,7 @@ else:
                         agents=crewai_agents,
                         tasks=crewai_tasks,
                         process=selected_process,
-                        manager_llm=gemini_llm if selected_process == Process.hierarchical else None,
+                        manager_llm=selected_llm if selected_process == Process.hierarchical else None,
                         verbose=False,
                     )
                     result = crew.kickoff()
@@ -428,3 +537,8 @@ else:
                     st.caption("Install python-docx to enable Word document downloads.")
             except Exception:
                 st.error("The workflow could not be completed. Check your settings and try again.")
+            finally:
+                if previous_serper_key is None:
+                    os.environ.pop("SERPER_API_KEY", None)
+                else:
+                    os.environ["SERPER_API_KEY"] = previous_serper_key
