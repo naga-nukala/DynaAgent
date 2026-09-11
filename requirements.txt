@@ -2,6 +2,8 @@ streamlit==1.61.1
 python-dotenv
 crewai==1.15.16
 crewai-tools==1.15.16
+litellm
+anthropic
 pydantic==2.12.5
 pydantic-core==2.41.5
 chromadb==1.1.1

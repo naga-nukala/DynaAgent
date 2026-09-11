@@ -25,7 +25,7 @@ WEB_SEARCH_TERMS = (
 LLM_PROVIDERS = {
     "Google Gemini": {
         "env_key": "GEMINI_API_KEY",
-        "models": ["gemini/gemini-2.5-flash", "gemini/gemini-2.0-flash", "gemini/gemini-2.5-pro"],
+        "models": ["gemini/gemini-3.6-flash"],
         "requires_key": True,
     },
     "OpenAI": {
@@ -35,7 +35,7 @@ LLM_PROVIDERS = {
     },
     "Anthropic": {
         "env_key": "ANTHROPIC_API_KEY",
-        "models": ["anthropic/claude-3-5-haiku-latest", "anthropic/claude-3-5-sonnet-latest"],
+        "models": ["anthropic/claude-haiku-4-5", "anthropic/claude-sonnet-4-5"],
         "requires_key": True,
     },
     "Groq": {
@@ -45,7 +45,7 @@ LLM_PROVIDERS = {
     },
     "OpenRouter": {
         "env_key": "OPENROUTER_API_KEY",
-        "models": ["openrouter/openai/gpt-4o-mini", "openrouter/google/gemini-2.0-flash-001"],
+        "models": ["openrouter/openai/gpt-4o-mini", "openrouter/google/gemini-3.6-flash"],
         "requires_key": True,
     },
     "Mistral": {
